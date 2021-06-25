@@ -63,6 +63,9 @@ function parseAlarm (line) {
   const messageParsed = reMessage.exec(line)
   const message = messageParsed && messageParsed.groups.message
   const timeParsed = reAlarmTime.exec(line)
+  if (!timeParsed) {
+    return null
+  }
   const meridiem = timeParsed && timeParsed.groups.meridiem
   const hours = Number(timeParsed.groups.hours)
   const minutes = Number(timeParsed.groups.minutes) || 0
