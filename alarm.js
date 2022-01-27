@@ -6,6 +6,7 @@ const { printAlarmSchedule } = require('./print')
 const alert = require('alert')
 printAlarmSchedule()
 
+// TODO: crear eventos
 async function onLine (line) {
   const newAlarm = parseAlarm(line)
   newAlarm && await alarm.set(newAlarm)
