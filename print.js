@@ -1,25 +1,26 @@
-const alarm = require('./db')
-const { createRows, formatTable,discardPastAlarms, convertMeridiemTime, addIndex, formatMeridiem } = require('./format')
+
+const table = require('text-table')
 
 module.exports = {
-  printAlarmSchedule
+  print,
+  formatState,
+  formatActiveAlarms
 }
 
-async function printAlarmSchedule (time, alarmNow) {
-  const alarms = await alarm.get()
-  const formattedRows = addIndex(
-    convertMeridiemTime(
-      discardPastAlarms(
-        createRows(JSON.parse(alarms)))))
-        const table = formatTable(['#', 'alarm', 'message'], formattedRows)
-  process.stdout.write('\033c')
+function print (rows) {
+  const t = table(rows)
+
+  process.stdout.write('\u001Bc')
+  console.log(t)
   console.log('')
-  if (alarmNow) {
-    console.log(`*  ${formatMeridiem(time)} ALARM: ${alarmNow.message}`)
-    console.log('')
-  }
-  console.log('Time now:', new Date().toLocaleTimeString())
-  console.log('')
-  console.log(table)
-  console.log('')
+}
+
+function formatState (state) {
+  const printableState = state.map((alarm, index) => [index, `${alarm.time.hour}:${alarm.time.minute}`, alarm.message])
+  const printable = [['#', 'HH:MM', 'message'], ['-', '-----', '-------']].concat(printableState)
+  return printable
+}
+
+function formatActiveAlarms (state) {
+  return state.map((alarm) => [`${alarm.time.hour}:${alarm.time.minute}`, alarm.message, 'ACTIVE NOW'])
 }

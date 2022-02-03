@@ -2,7 +2,7 @@
   "name": "alarm",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "alarm.js",
   "scripts": {
     "test": "tape *test.js | tap-nirvana",
     "watch": "nodemon --exec \"npm t\""
@@ -10,10 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "alert": "^5.0.10",
     "entero": "^1.3.3",
-    "level": "^7.0.0",
-    "minimist": "^1.2.5",
     "text-table": "^0.2.0"
   },
   "devDependencies": {

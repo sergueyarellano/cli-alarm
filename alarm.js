@@ -1,40 +1,50 @@
 const entero = require('entero')
-const alarm = require('./db')
-const actions = require('./actions')
-const { parseAlarm } = require('./format')
-const { printAlarmSchedule } = require('./print')
-const alert = require('alert')
-printAlarmSchedule()
+const { formatTime, parseTime, parseMessage, parseAlarmNum } = require('./format')
+const EventEmitter = require('events')
+const emitter = new EventEmitter()
+require('./time-loop')(emitter)
+const { register, eventType } = require('./events')
+register(emitter)
 
-// TODO: crear eventos
 async function onLine (line) {
-  const newAlarm = parseAlarm(line)
-  newAlarm && await alarm.set(newAlarm)
-  await printAlarmSchedule()
+  const reParseLine = /^(?<command>\w+)\s/
+  const parseLineResults = reParseLine.exec(line)
+  const command = parseLineResults && parseLineResults.groups.command.toUpperCase()
+
+  switch (command) {
+    case 'SET': {
+      // parse alarm time and message
+      const parsedTime = parseTime(line)
+      const time = formatTime(parsedTime)
+      const message = parseMessage(line)
+      const newAlarm = { time, message }
+      // produce the event to update state and print
+      emitter.emit(eventType.ALARM_SET, newAlarm)
+      break
+    }
+    case 'DEL': {
+      // parse alarm index to be deleted
+      const alarmIndex = parseAlarmNum(line)
+      emitter.emit(eventType.ALARM_DELETED, [alarmIndex])
+      break
+    }
+    default:
+      console.log('Not a command, use /help to list commands')
+  }
 }
 
 entero({
-  prompt: 'set alarm > ',
+  prompt: '> ',
   onLine,
   commands: {
-    help: () => console.log('on my way! \n(っ▀¯▀)つ')
+    help: () => {
+      const set1 = 'set 10:30 "standup"\tcreate an alarm at 10:30'
+      const set2 = 'set 14 "fix phone"\tcreate an alarm at 14:00'
+      const del1 = 'del 1\t\t\tdelete alarm #1'
+      console.log('')
+      console.log(set1)
+      console.log(set2)
+      console.log(del1)
+    }
   }
 })
-
-setInterval(async () => {
-  const date = new Date()
-  const hours = String(date.getHours()).padStart(2, '0')
-  const min = String(date.getMinutes()).padStart(2, '0')
-  const seconds = date.getSeconds()
-  const time = `${hours}:${min}`
-  const alarms = JSON.parse(await alarm.get().catch(() => '{}'))
-
-  const alarmNow = alarms[time]
-
-  if (alarmNow) {
-    const message = `Hey friend! you have: ${alarmNow.message}, right now`
-    !seconds && alert(message)
-    !seconds && actions.say(message)
-  }
-  printAlarmSchedule(time, alarmNow)
-}, 1000)

@@ -1,81 +1,52 @@
-const table = require('text-table')
-
 module.exports = {
-  createRows,
-  formatTable,
-  getTodayDate,
-  parseAlarm,
-  formatMeridiem,
-  addIndex,
-  discardPastAlarms,
-  convertMeridiemTime
-
+  formatTime,
+  parseTime,
+  parseMessage,
+  parseAlarmNum
 }
 
-function formatMeridiem (time) {
-  function replacer (match, p1, p2, offset, string) {
-    const hoursMatch = Number(p1)
-    const meridiem = hoursMatch > 11 ? 'pm' : 'am'
-    const hours = hoursMatch > 12 ? hoursMatch - 12 : hoursMatch
-    return `${String(hours).padStart(2, '0')}:${p2} ${meridiem}`
+function formatTime (time) {
+  const hour = time.hour
+  const minute = time.minute || '00'
+
+  return {
+    hour: hour.padStart(2, '0'),
+    minute: minute.padStart(2, '0')
   }
-  return time.replace(/([^:]+):([^:]+)/g, replacer)
 }
 
-function discardPastAlarms (rows) {
-  return rows.filter(alarm => {
-    const date = new Date()
-    const hours = String(date.getHours()).padStart(2, '0')
-    const min = String(date.getMinutes()).padStart(2, '0')
-    const formattedTime = `${hours}:${min}`
-    return alarm[0] >= formattedTime
-  })
-}
-
-function convertMeridiemTime (rows) {
-  return rows.map(alarm => [formatMeridiem(alarm[0]), alarm[1]])
-}
-
-function addIndex (rows) {
-  return rows.map((alarm, index) => [index, ...alarm])
-}
-
-function createRows (entries) {
-  return Object.keys(entries)
-    .map((time) => {
-      return [time, entries[time].message]
-    })
-    .sort()
-}
-
-function formatTable (title, rows) {
-  return table([title].concat([['-', '-----', '-------']]).concat(rows), { align: ['l', 'l', 'l'] })
-}
-
-function getTodayDate () {
-  const date = new Date()
-  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
-}
-
-function parseAlarm (line) {
-  const reAlarmTime = /(?<hours>\d{1,2})(?:[:. ])?(?<minutes>\d{1,2})?\s?(?<meridiem>am|pm)?/
-  const reMessage = /["](?<message>[^"]+)["]/
-  const messageParsed = reMessage.exec(line)
-  const message = messageParsed && messageParsed.groups.message
+function parseTime (line) {
+  const reAlarmTime = /(?<hour>\d{1,2})(?:[:. ])?(?<minute>\d{1,2})?\s?/
   const timeParsed = reAlarmTime.exec(line)
+
   if (!timeParsed) {
-    return null
+    throw new Error('Time passed in incorrect format or not passed')
   }
-  const meridiem = timeParsed && timeParsed.groups.meridiem
-  const hours = Number(timeParsed.groups.hours)
-  const minutes = Number(timeParsed.groups.minutes) || 0
+  const hour = timeParsed.groups.hour
+  const minute = timeParsed.groups.minute
+  return {
+    hour: hour,
+    minute: minute
+  }
+}
 
-  const schedule = {
-    hours,
-    minutes,
-    meridiem: meridiem || '',
-    message: message || 'just an alarm'
+function parseMessage (line) {
+  const reMessage = /["](?<message>[^"]+)["]/
+  const messageResult = reMessage.exec(line)
+  const message = messageResult ? messageResult.groups.message : '(╯°□°）╯︵ ┻━┻'
+
+  return message
+}
+
+function parseAlarmNum (line) {
+  const reMessage = /[#]?(?<message>\d{1,2})$/
+  const messageResult = reMessage.exec(line)
+
+  if (!messageResult) {
+    throw new Error('You have to provide a number')
   }
 
-  return schedule
+  const message = messageResult.groups.message
+
+  return message
 }
